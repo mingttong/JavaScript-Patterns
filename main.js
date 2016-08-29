@@ -315,3 +315,272 @@ var Builder = function () {
     console.log('更改后的职位描述：' +person.work.workDescript);
 
 }();
+
+// 原型模式
+console.log('####################################################');
+console.log('原型模式');
+
+var PrototypePattern = function () {
+
+    // 图片轮播类
+    var LoopImages = function (imgArr, container) {
+        this.imagesArray = imgArr; // 轮播图片数组
+        this.container = container; // 轮播图片容器
+        this.createImage = function () {}; // 创建轮播图片
+        this.changeImage = function () {}; // 切换下一张图片
+    };
+
+    // 上下滑动切换类
+    var SlideLoopImg = function (imgArr, container) {
+        // 构造函数继承图片轮播类
+        LoopImages.call(this, imgArr, container);
+        // 重写继承的切换下一张图片方法
+        this.changeImage = function () {
+            console.log('SlideLoopImg changeImage function');
+        };
+    };
+    // 渐隐切换类
+    var FadeLoopImg = function (imgArr, container, arrow) {
+        LoopImages.call(this, imgArr, container);
+        // 切换箭头私有变量
+        this.arrow = arrow;
+        this.changeImage = function () {
+            console.log('FadeLoopImg changeImage function');
+        };
+    };
+
+    // 实例化一个渐隐切换图片对象
+    var fadeImg = new FadeLoopImg([
+        '01.jpg',
+        '02.jpg',
+        '03.jpg',
+        '04.jpg'
+    ], 'slide', [
+        'left.jpg',
+        'right.jpg'
+    ]);
+    fadeImg.changeImage(); // FadeLoopImg changeImage function
+
+    LoopImages.prototype.getImageLength = function () {
+        return this.imagesArray;
+    };
+    FadeLoopImg.prototype.getContainer = function () {
+        return this.container;
+    };
+    console.log('*************************************');
+    try {
+        console.log(fadeImg.getImageLength());
+    } catch (err) {
+        console.log(err);
+        console.log('这里说明了如果不是涉及原型的继承，原型拓展是不适用的');
+    }
+    console.log(fadeImg.getContainer());
+    console.log('*************************************');
+
+}();
+
+//****最优的解决方案****
+//****将消耗资源比较大的方法放在基类的原型中****
+//****采取组合式继承****
+
+console.log('#####################更优的解决方案###################');
+
+var BetterPrototypePattern = function () {
+
+    // 图片轮播类
+    var LoopImages = function (imgArr, container) {
+        this.imagesArray = imgArr;       // 轮播图片数组
+        this.container = container;      // 轮播图片容器
+    };
+    LoopImages.prototype = {
+        // 创建轮播图片
+        createImage : function () {
+            console.log('LoopImages createImage function');
+        },
+        // 切换下一张图片
+        changeImage : function () {
+            console.log('LoopImages changeImage function');
+        }
+    };
+    // 上下滑动切换类
+    var SlideLoopImg = function (imgArr, container) {
+        // 构造函数继承图片轮播类
+        LoopImages.call(this, imgArr, container);
+    };
+    // 类式继承
+    SlideLoopImg.prototype = new LoopImages();
+    // 重写继承的切换下一张图片方法
+    SlideLoopImg.prototype.changeImage = function () {
+        console.log('SlideLoopImg changeImage function');
+    };
+    // 渐隐切换类
+    var FadeLoopImg = function (imgArr, container, arrow) {
+        LoopImages.call(this, imgArr, container);
+        // 切换箭头私有变量
+        this.arrow = arrow;
+    };
+    FadeLoopImg.prototype = new LoopImages();
+    FadeLoopImg.prototype.changeImage = function () {
+        console.log('FadeLoopImg changeImage function');
+    };
+
+    // 测试用例
+
+    var fadeImg = new FadeLoopImg([
+        '01.jpg',
+        '02.jpg',
+        '03.jpg',
+        '04.jpg'
+    ], 'slide', [
+        'left.jpg',
+        'right.jpg'
+    ]);
+
+    console.log(fadeImg.container);   // slide
+    fadeImg.changeImage();            // FadeLoopImg changeImage function
+
+    // 原型的拓展
+    console.log('#############原型的拓展############');
+
+    LoopImages.prototype.getImageLength = function () {
+        return this.imagesArray.length;
+    };
+    FadeLoopImg.prototype.getContainer = function () {
+        return this.container;
+    };
+
+    console.log(fadeImg.getImageLength());
+    console.log(fadeImg.getContainer());
+    console.log('并不是每种继承方法都适用，只有涉及到原型的继承才适用，');
+    console.log('就是 SubClass.prototype = new SuperClass(); 这样的才适用');
+    console.log('可以看上面的例子');
+
+    // 原型继承
+    console.log('#################原型继承###################');
+
+    /*****
+     * 基于已经存在的模板对象克隆出新对象的模式
+     * arguments[0], arguments[1], arguments[2]: 参数1， 参数2， 参数3表示模板对象
+     * 注意。这里对模板引用类型的属性实质上进行了浅复制（引用类型属性共享），当然根据需求
+     * 可以自己进行深复制（引用类型属性复制）
+     *****/
+
+    function prototypeExtend () {
+        var F = function () {},
+            args = arguments,
+            i,
+            len = args.length;
+
+        for (i = 0; i < len; i += 1) {
+            // 遍历每个模板对象中的属性
+            for (var j in args[i]) {
+                // 将这些属性复制到缓存类原型中
+                F.prototype[j] = args[i][j];
+            }
+        }
+        // 返回缓存类的一个实例
+        return new F();
+    }
+
+    console.log('####企鹅例子####')
+    // 比如一个企鹅对象
+    var penguin = prototypeExtend({
+        speed : 20,
+        swim : function () {
+            console.log('游泳速度' + this.speed);
+        }
+    }, {
+        run : function (speed) {
+            console.log('奔跑速度' + this.speed);
+        }
+    }, {
+        jump : function () {
+            console.log('跳跃动作');
+        }
+    });
+
+    penguin.swim();
+    penguin.run();
+    penguin.jump();
+
+}();
+
+// 单例模式
+console.log('####################################################');
+console.log('单例模式');
+
+var Singleton = function () {
+
+    console.log('####命名空间####');
+    var Zhou = {
+        g : function (id) {
+            return document.getElementById(id);
+        },
+        css : function (id, key, value) {
+            // 通过当前对象this来使用g方法
+            this.g(id).style[key] = value;
+        }
+    };
+
+    console.log('####小型代码库####');
+    var A = {
+        Util : {
+            util_method1 : function () {},
+            util_method2 : function () {}
+        },
+        Tool : {
+            tool_method1 : function () {},
+            tool_method2 : function () {}
+        },
+        others : {
+            //......
+        }
+    };
+
+    console.log('####静态变量####');
+    var Conf = (function () {
+        // 私有变量
+        var conf = {
+            MAX_NUM : 100,
+            MIN_NUM : 1,
+            COUNT : 1000
+        };
+        // 返回取值器对象
+        return {
+            // 取值器方法
+            get : function (name) {
+                return conf[name] ? conf[name] : null;
+            }
+        }
+    })();
+
+    var count = Conf.get('COUNT');
+    console.log(count);
+
+    console.log('####惰性单例####');
+    // 惰性载入单例
+    var LazySingle = (function () {
+        // 单例实例引用
+        var _instance = null;
+        // 单例
+        function Single () {
+            /*这里定义私有属性和方法*/
+            return {
+                publicMethod : function () {},
+                publicProperty : '1.0'
+            }
+        }
+        // 获取单例对象接口
+        return function () {
+            // 如果未创建单例将创建单例
+            if (!_instance) {
+                _instance = Single();
+            }
+            // 返回单例
+            return _instance;
+        }
+    })();
+
+    console.log(LazySingle().publicProperty);
+
+}();
